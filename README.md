@@ -21,7 +21,6 @@
 
 **A-Von CashBook** is a proprietary offline-first desktop application designed to streamline financial management for Ugandan educational institutions. Built for bursars, headteachers, and school proprietors, it replaces manual cashbooks and spreadsheets with a secure, auditable, and printable financial system.
 
-> Developed and maintained by **A-Von Computer Solutions**.
 
 ---
 
