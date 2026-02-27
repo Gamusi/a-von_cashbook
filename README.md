@@ -114,9 +114,3 @@ avon-cashbook/
 Proprietary software. All rights reserved.  
 Copyright (c) 2025 A-Von Computer Solutions.  
 Unauthorized copying, distribution, or modification is strictly prohibited.
-
----
-
-<div align="center">
-Built with care by <strong>A-Von Computer Solutions</strong>
-</div>
