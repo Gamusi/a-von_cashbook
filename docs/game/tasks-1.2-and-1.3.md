@@ -113,7 +113,9 @@ If nothing was challenging, say so and explain why it felt straightforward.
 
 ## Step 3 — What Happens Next
 
-Your PR is now open. The reviewer will look at your code and your log and may leave comments. If they do:
+Your PR is now open. Once you have opened it, your job for Task 1.2 is done. **Do not try to merge it yourself — you cannot and should not.** The reviewer will inspect your code and your log, and they will be the one to merge it.
+
+The reviewer may leave comments before merging. If they do:
 
 - Read the comment carefully
 - Make the change locally on the same branch
@@ -149,6 +151,8 @@ Add to your glossary: `branch`, `commit`, `pull request`, `merge`, `staging area
 # Task 1.3 — Python Foundations
 
 **Branch to create:** `game/task-1.3-python-foundations`
+
+> **Before you start:** Only begin Task 1.3 after your Task 1.2 PR has been reviewed, approved, and merged into `main`. If it has not been merged yet, wait. Starting on a stale branch will cause problems when you try to push and open your PR.
 
 ---
 
@@ -279,8 +283,10 @@ Python comes with a large standard library — code that is already written and 
 import datetime
 
 today = datetime.date.today()
-print(today)  # prints: 2025-03-10
+print(today)  # prints something like: 2026-03-10 (today's actual date)
 ```
+
+`datetime.date.today()` returns a `date` object, not a plain string. It will display correctly when you print it or use it in an f-string, but it is important to know what type it actually is — you will encounter this distinction again in Tier 4 when working with databases.
 
 You do not need to install anything for standard library modules. They come with Python.
 
@@ -395,7 +401,15 @@ git commit -m "feat: add python foundations script for task 1.3"
 
 ### Step 6 — Update Your Learning Log
 
-Open `docs/game/log.md` and add a new entry for Task 1.3. Answer these questions in your own words:
+Your learning log was created in Task 1.1 at `docs/game/log.md`. Open it and add a new entry for Task 1.3.
+
+If for any reason the file does not exist yet, create it first:
+
+```bash
+touch docs/game/log.md
+```
+
+Answer these questions in your own words:
 
 - What is the difference between a list and a dictionary? When would you use one over the other?
 - What does `return` do in a function? What happens if you forget it?
@@ -413,9 +427,15 @@ git commit -m "docs: add learning log entry for task 1.3"
 
 ### Step 7 — Update Your Glossary
 
-Open `docs/game/glossary.md` and add definitions in your own words for:
+Your glossary was created in Task 1.1 at `docs/game/glossary.md`. Open it and add definitions in your own words for:
 
 `function`, `module`, `data type`, `iteration`, `conditional`, `dictionary`, `list`, `return value`
+
+If for any reason the file does not exist yet, create it first:
+
+```bash
+touch docs/game/glossary.md
+```
 
 Commit:
 
