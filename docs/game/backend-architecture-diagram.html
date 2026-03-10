@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A-Von CashBook — Backend Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00d4aa;
+    --accent2: #3b82f6;
+    --accent3: #f59e0b;
+    --accent4: #ec4899;
+    --accent5: #8b5cf6;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --danger: #ef4444;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 1; }
+
+  header {
+    text-align: center;
+    margin-bottom: 60px;
+    padding-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-tag {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 12px;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    color: #fff;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* SECTION HEADERS */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* FILE TREE */
+  .file-tree-section { margin-bottom: 60px; }
+
+  .tree-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .tree-folder {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .tree-folder:hover { border-color: var(--accent2); }
+
+  .folder-header {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .folder-icon {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .folder-files {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .file-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.5;
+  }
+
+  .file-item::before {
+    content: '—';
+    color: var(--border);
+    flex-shrink: 0;
+  }
+
+  .file-item .comment {
+    color: #2d4a3e;
+    font-size: 10px;
+  }
+
+  /* DATABASE TABLES */
+  .db-section { margin-bottom: 60px; }
+
+  .tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+  }
+
+  .db-table {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .table-header {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    color: #fff;
+  }
+
+  .table-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  .table-rows {
+    padding: 8px 0;
+  }
+
+  .table-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 1fr;
+    gap: 8px;
+    padding: 5px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+  }
+  .table-row:last-child { border-bottom: none; }
+
+  .col-name { color: var(--text); }
+  .col-type { color: var(--accent3); }
+  .col-note { color: var(--muted); font-size: 10px; display: flex; align-items: center; }
+
+  .pk { color: var(--accent); font-weight: 700; }
+  .fk { color: var(--accent4); }
+  .required { color: var(--danger); font-size: 9px; }
+
+  /* API ROUTES */
+  .routes-section { margin-bottom: 60px; }
+
+  .routes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 16px;
+  }
+
+  .route-group {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .route-group-header {
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .route-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 7px 16px;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+  }
+  .route-item:last-child { border-bottom: none; }
+
+  .method {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    min-width: 42px;
+    text-align: center;
+  }
+  .get { background: #0d3321; color: #00d4aa; }
+  .post { background: #1a2f0d; color: #84cc16; }
+  .put { background: #2d2000; color: #f59e0b; }
+  .delete { background: #2d0d0d; color: #ef4444; }
+
+  .route-path { color: var(--text); flex: 1; }
+  .route-desc { color: var(--muted); font-size: 10px; display: block; margin-top: 2px; }
+
+  /* DATA FLOW */
+  .flow-section { margin-bottom: 60px; }
+
+  .flow-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .flow-node {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 280px;
+    position: relative;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: default;
+  }
+  .flow-node:hover { transform: scale(1.02); }
+
+  .flow-node .node-sub {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 3px;
+    display: block;
+  }
+
+  .flow-arrow {
+    width: 2px;
+    height: 28px;
+    background: linear-gradient(to bottom, var(--border), var(--accent));
+    position: relative;
+    flex-shrink: 0;
+  }
+  .flow-arrow::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 7px solid var(--accent);
+  }
+
+  .flow-side-note {
+    position: absolute;
+    right: calc(100% + 16px);
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .flow-side-note::after {
+    content: '→';
+    color: var(--border);
+  }
+
+  /* RULES */
+  .rules-section { margin-bottom: 60px; }
+
+  .rules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+  }
+
+  .rule-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--danger);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 16px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--muted);
+  }
+
+  .rule-card strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 13px; }
+
+  footer {
+    text-align: center;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+  }
+
+  /* COLOR ACCENTS PER MODULE */
+  .mod-institution { border-top-color: var(--accent); }
+  .mod-academic { border-top-color: var(--accent2); }
+  .mod-student { border-top-color: var(--accent3); }
+  .mod-fee { border-top-color: var(--accent5); }
+  .mod-payment { border-top-color: var(--accent); }
+  .mod-cashbook { border-top-color: var(--accent2); }
+  .mod-banking { border-top-color: var(--accent3); }
+  .mod-expense { border-top-color: var(--accent4); }
+  .mod-user { border-top-color: var(--accent5); }
+  .mod-audit { border-top-color: var(--danger); }
+
+  .badge-institution { background: rgba(0,212,170,0.1); color: var(--accent); }
+  .badge-academic { background: rgba(59,130,246,0.1); color: var(--accent2); }
+  .badge-student { background: rgba(245,158,11,0.1); color: var(--accent3); }
+  .badge-fee { background: rgba(139,92,246,0.1); color: var(--accent5); }
+  .badge-payment { background: rgba(0,212,170,0.1); color: var(--accent); }
+  .badge-cashbook { background: rgba(59,130,246,0.1); color: var(--accent2); }
+  .badge-banking { background: rgba(245,158,11,0.1); color: var(--accent3); }
+  .badge-expense { background: rgba(236,72,153,0.1); color: var(--accent4); }
+  .badge-user { background: rgba(139,92,246,0.1); color: var(--accent5); }
+  .badge-audit { background: rgba(239,68,68,0.1); color: var(--danger); }
+
+  .dot-institution { background: var(--accent); }
+  .dot-academic { background: var(--accent2); }
+  .dot-student { background: var(--accent3); }
+  .dot-fee { background: var(--accent5); }
+  .dot-payment { background: var(--accent); }
+  .dot-cashbook { background: var(--accent2); }
+  .dot-banking { background: var(--accent3); }
+  .dot-expense { background: var(--accent4); }
+  .dot-user { background: var(--accent5); }
+  .dot-audit { background: var(--danger); }
+
+  .node-institution { border-color: var(--accent); }
+  .node-academic { border-color: var(--accent2); }
+  .node-student { border-color: var(--accent3); }
+  .node-fee { border-color: var(--accent5); }
+  .node-payment { border-color: var(--accent); border-width: 2px; }
+  .node-cashbook { border-color: var(--accent2); }
+  .node-banking { border-color: var(--accent3); }
+  .node-expense { border-color: var(--accent4); }
+  .node-report { border-color: var(--accent5); }
+  .node-audit { border-color: var(--danger); }
+
+  .rg-institution { border-top: 2px solid var(--accent); }
+  .rg-academic { border-top: 2px solid var(--accent2); }
+  .rg-student { border-top: 2px solid var(--accent3); }
+  .rg-fee { border-top: 2px solid var(--accent5); }
+  .rg-payment { border-top: 2px solid var(--accent); }
+  .rg-cashbook { border-top: 2px solid var(--accent2); }
+  .rg-banking { border-top: 2px solid var(--accent3); }
+  .rg-expense { border-top: 2px solid var(--accent4); }
+  .rg-report { border-top: 2px solid var(--accent5); }
+  .rg-user { border-top: 2px solid var(--accent5); }
+  .rg-audit { border-top: 2px solid var(--danger); }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="container">
+
+  <header>
+    <div class="logo-tag">A-Von Computer Solutions</div>
+    <h1>A-Von <span>CashBook</span><br>Backend Architecture</h1>
+    <p class="subtitle">// complete reference — backend developer use only</p>
+  </header>
+
+  <!-- FILE STRUCTURE -->
+  <div class="file-tree-section">
+    <div class="section-title">01 — File Structure</div>
+    <div class="tree-grid">
+
+      <div class="tree-folder">
+        <div class="folder-header">
+          <div class="folder-icon" style="background:#00d4aa"></div>
+          backend/app/
+        </div>
+        <div class="folder-files">
+          <div class="file-item">main.py <span class="comment">// FastAPI entry point</span></div>
+          <div class="file-item">database.py <span class="comment">// engine + session</span></div>
+          <div class="file-item">dependencies.py <span class="comment">// get_db, auth</span></div>
+        </div>
+      </div>
+
+      <div class="tree-folder">
+        <div class="folder-header">
+          <div class="folder-icon" style="background:#3b82f6"></div>
+          backend/app/models/
+        </div>
+        <div class="folder-files">
+          <div class="file-item">institution.py</div>
+          <div class="file-item">academic.py</div>
+          <div class="file-item">student.py</div>
+          <div class="file-item">fee.py</div>
+          <div class="file-item">payment.py</div>
+          <div class="file-item">payment_plan.py</div>
+          <div class="file-item">cashbook.py</div>
+          <div class="file-item">banking.py</div>
+          <div class="file-item">expense.py</div>
+          <div class="file-item">user.py</div>
+          <div class="file-item">audit.py</div>
+        </div>
+      </div>
+
+      <div class="tree-folder">
+        <div class="folder-header">
+          <div class="folder-icon" style="background:#f59e0b"></div>
+          backend/app/schemas/
+        </div>
+        <div class="folder-files">
+          <div class="file-item">institution.py</div>
+          <div class="file-item">academic.py</div>
+          <div class="file-item">student.py</div>
+          <div class="file-item">fee.py</div>
+          <div class="file-item">payment.py</div>
+          <div class="file-item">payment_plan.py</div>
+          <div class="file-item">cashbook.py</div>
+          <div class="file-item">banking.py</div>
+          <div class="file-item">expense.py</div>
+          <div class="file-item">user.py</div>
+          <div class="file-item">audit.py</div>
+        </div>
+      </div>
+
+      <div class="tree-folder">
+        <div class="folder-header">
+          <div class="folder-icon" style="background:#8b5cf6"></div>
+          backend/app/api/
+        </div>
+        <div class="folder-files">
+          <div class="file-item">institution.py</div>
+          <div class="file-item">academic.py</div>
+          <div class="file-item">students.py</div>
+          <div class="file-item">fees.py</div>
+          <div class="file-item">payments.py</div>
+          <div class="file-item">payment_plans.py</div>
+          <div class="file-item">cashbook.py</div>
+          <div class="file-item">banking.py</div>
+          <div class="file-item">expenses.py</div>
+          <div class="file-item">reports.py</div>
+          <div class="file-item">users.py</div>
+          <div class="file-item">audit.py</div>
+        </div>
+      </div>
+
+      <div class="tree-folder">
+        <div class="folder-header">
+          <div class="folder-icon" style="background:#ec4899"></div>
+          backend/app/services/
+        </div>
+        <div class="folder-files">
+          <div class="file-item">institution_service.py</div>
+          <div class="file-item">academic_service.py</div>
+          <div class="file-item">student_service.py</div>
+          <div class="file-item">fee_service.py</div>
+          <div class="file-item">payment_service.py</div>
+          <div class="file-item">payment_plan_service.py</div>
+          <div class="file-item">cashbook_service.py</div>
+          <div class="file-item">banking_service.py</div>
+          <div class="file-item">expense_service.py</div>
+          <div class="file-item">receipt_service.py</div>
+          <div class="file-item">report_service.py</div>
+          <div class="file-item">user_service.py</div>
+          <div class="file-item">audit_service.py</div>
+        </div>
+      </div>
+
+      <div class="tree-folder">
+        <div class="folder-header">
+          <div class="folder-icon" style="background:#00d4aa"></div>
+          backend/app/reports/
+        </div>
+        <div class="folder-files">
+          <div class="file-item">receipt.py <span class="comment">// official receipt PDF</span></div>
+          <div class="file-item">voucher.py <span class="comment">// expense voucher PDF</span></div>
+          <div class="file-item">daily_collection.py</div>
+          <div class="file-item">student_statement.py</div>
+          <div class="file-item">cashbook_report.py</div>
+          <div class="file-item">fee_balance.py</div>
+          <div class="file-item">term_summary.py</div>
+          <div class="file-item">income_expenditure.py</div>
+        </div>
+      </div>
+
+      <div class="tree-folder">
+        <div class="folder-header">
+          <div class="folder-icon" style="background:#64748b"></div>
+          backend/app/utils/
+        </div>
+        <div class="folder-files">
+          <div class="file-item">receipt_number.py <span class="comment">// YYYY/T#/NNNN</span></div>
+          <div class="file-item">security.py <span class="comment">// bcrypt, tokens</span></div>
+          <div class="file-item">excel_import.py</div>
+          <div class="file-item">backup.py</div>
+        </div>
+      </div>
+
+      <div class="tree-folder">
+        <div class="folder-header">
+          <div class="folder-icon" style="background:#ef4444"></div>
+          backend/tests/
+        </div>
+        <div class="folder-files">
+          <div class="file-item">scratch/ <span class="comment">// Tier 1-3 sandbox</span></div>
+          <div class="file-item">test_institution.py</div>
+          <div class="file-item">test_students.py</div>
+          <div class="file-item">test_fees.py</div>
+          <div class="file-item">test_payments.py</div>
+          <div class="file-item">test_cashbook.py</div>
+          <div class="file-item">test_expenses.py</div>
+          <div class="file-item">test_reports.py</div>
+          <div class="file-item">test_users.py</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DATABASE -->
+  <div class="db-section">
+    <div class="section-title">02 — Database Tables</div>
+    <div class="tables-grid">
+
+      <div class="db-table mod-institution">
+        <div class="table-header">
+          <span class="table-name">institution</span>
+          <span class="table-badge badge-institution">Config</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK — always row 1</span></div>
+          <div class="table-row"><span class="col-name">name</span><span class="col-type">VARCHAR</span><span class="col-note">School name</span></div>
+          <div class="table-row"><span class="col-name">address</span><span class="col-type">VARCHAR</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">logo_path</span><span class="col-type">VARCHAR</span><span class="col-note">Local file path</span></div>
+          <div class="table-row"><span class="col-name">term_structure</span><span class="col-type">VARCHAR</span><span class="col-note">trimester / semester</span></div>
+          <div class="table-row"><span class="col-name">created_at</span><span class="col-type">DATETIME</span><span class="col-note">Auto</span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-academic">
+        <div class="table-header">
+          <span class="table-name">academic_years</span>
+          <span class="table-badge badge-academic">Academic</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name">year</span><span class="col-type">VARCHAR</span><span class="col-note">e.g. "2025"</span></div>
+          <div class="table-row"><span class="col-name">is_active</span><span class="col-type">BOOLEAN</span><span class="col-note">One active at a time</span></div>
+          <div class="table-row"><span class="col-name">created_at</span><span class="col-type">DATETIME</span><span class="col-note">Auto</span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-academic">
+        <div class="table-header">
+          <span class="table-name">terms</span>
+          <span class="table-badge badge-academic">Academic</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name fk">academic_year_id</span><span class="col-type">INTEGER</span><span class="col-note">FK → academic_years</span></div>
+          <div class="table-row"><span class="col-name">term_number</span><span class="col-type">INTEGER</span><span class="col-note">1–3 (trimester) or 1–2 (semester)</span></div>
+          <div class="table-row"><span class="col-name">label</span><span class="col-type">VARCHAR</span><span class="col-note">e.g. "Term 1" / "Semester 2"</span></div>
+          <div class="table-row"><span class="col-name">status</span><span class="col-type">VARCHAR</span><span class="col-note">open/closed/frozen</span></div>
+          <div class="table-row"><span class="col-name">receipt_counter</span><span class="col-type">INTEGER</span><span class="col-note">Starts at 0</span></div>
+          <div class="table-row"><span class="col-name">start_date</span><span class="col-type">DATE</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">end_date</span><span class="col-type">DATE</span><span class="col-note"></span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-academic">
+        <div class="table-header">
+          <span class="table-name">classes</span>
+          <span class="table-badge badge-academic">Academic</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name fk">academic_year_id</span><span class="col-type">INTEGER</span><span class="col-note">FK</span></div>
+          <div class="table-row"><span class="col-name">name</span><span class="col-type">VARCHAR</span><span class="col-note">e.g. P.6, S.3</span></div>
+          <div class="table-row"><span class="col-name">level</span><span class="col-type">VARCHAR</span><span class="col-note">primary/olevel/alevel</span></div>
+          <div class="table-row"><span class="col-name">stream</span><span class="col-type">VARCHAR</span><span class="col-note">Optional</span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-student">
+        <div class="table-header">
+          <span class="table-name">students</span>
+          <span class="table-badge badge-student">Core</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name">student_id</span><span class="col-type">VARCHAR</span><span class="col-note">Unique, school-defined</span></div>
+          <div class="table-row"><span class="col-name">first_name</span><span class="col-type">VARCHAR</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">last_name</span><span class="col-type">VARCHAR</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name fk">class_id</span><span class="col-type">INTEGER</span><span class="col-note">FK</span></div>
+          <div class="table-row"><span class="col-name">guardian_name</span><span class="col-type">VARCHAR</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">guardian_phone</span><span class="col-type">VARCHAR</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">status</span><span class="col-type">VARCHAR</span><span class="col-note">active/transferred/dropout</span></div>
+          <div class="table-row"><span class="col-name">status_reason</span><span class="col-type">VARCHAR</span><span class="col-note">Required on change</span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-fee">
+        <div class="table-header">
+          <span class="table-name">fee_structures</span>
+          <span class="table-badge badge-fee">Billing</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name fk">class_id</span><span class="col-type">INTEGER</span><span class="col-note">FK</span></div>
+          <div class="table-row"><span class="col-name fk">term_id</span><span class="col-type">INTEGER</span><span class="col-note">FK</span></div>
+          <div class="table-row"><span class="col-name fk">fee_category_id</span><span class="col-type">INTEGER</span><span class="col-note">FK</span></div>
+          <div class="table-row"><span class="col-name">amount</span><span class="col-type">DECIMAL</span><span class="col-note">Expected amount</span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-payment">
+        <div class="table-header">
+          <span class="table-name">payments</span>
+          <span class="table-badge badge-payment">Core — Heart</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name fk">student_id</span><span class="col-type">INTEGER</span><span class="col-note">FK</span></div>
+          <div class="table-row"><span class="col-name fk">term_id</span><span class="col-type">INTEGER</span><span class="col-note">FK</span></div>
+          <div class="table-row"><span class="col-name">receipt_number</span><span class="col-type">VARCHAR</span><span class="col-note">YYYY/T#/NNNN unique</span></div>
+          <div class="table-row"><span class="col-name">amount</span><span class="col-type">DECIMAL</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">channel</span><span class="col-type">VARCHAR</span><span class="col-note">cash/bank_slip/momo</span></div>
+          <div class="table-row"><span class="col-name">is_voided</span><span class="col-type">BOOLEAN</span><span class="col-note">Default false</span></div>
+          <div class="table-row"><span class="col-name">void_reason</span><span class="col-type">VARCHAR</span><span class="col-note">Required if voided</span></div>
+          <div class="table-row"><span class="col-name fk">recorded_by</span><span class="col-type">INTEGER</span><span class="col-note">FK users</span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-cashbook">
+        <div class="table-header">
+          <span class="table-name">cashbook_entries</span>
+          <span class="table-badge badge-cashbook">Auto-only</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name">entry_type</span><span class="col-type">VARCHAR</span><span class="col-note">receipt/expense/deposit</span></div>
+          <div class="table-row"><span class="col-name">reference_id</span><span class="col-type">INTEGER</span><span class="col-note">Source record ID</span></div>
+          <div class="table-row"><span class="col-name">reference_table</span><span class="col-type">VARCHAR</span><span class="col-note">Source table name</span></div>
+          <div class="table-row"><span class="col-name">debit</span><span class="col-type">DECIMAL</span><span class="col-note">Money in</span></div>
+          <div class="table-row"><span class="col-name">credit</span><span class="col-type">DECIMAL</span><span class="col-note">Money out</span></div>
+          <div class="table-row"><span class="col-name">balance</span><span class="col-type">DECIMAL</span><span class="col-note">Running balance</span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-expense">
+        <div class="table-header">
+          <span class="table-name">expenses</span>
+          <span class="table-badge badge-expense">Workflow</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name fk">term_id</span><span class="col-type">INTEGER</span><span class="col-note">FK</span></div>
+          <div class="table-row"><span class="col-name fk">category_id</span><span class="col-type">INTEGER</span><span class="col-note">FK</span></div>
+          <div class="table-row"><span class="col-name">amount</span><span class="col-type">DECIMAL</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">payee</span><span class="col-type">VARCHAR</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">status</span><span class="col-type">VARCHAR</span><span class="col-note">draft→pending→approved→paid</span></div>
+          <div class="table-row"><span class="col-name fk">initiated_by</span><span class="col-type">INTEGER</span><span class="col-note">FK users</span></div>
+          <div class="table-row"><span class="col-name fk">approved_by</span><span class="col-type">INTEGER</span><span class="col-note">FK users, nullable</span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-user">
+        <div class="table-header">
+          <span class="table-name">users</span>
+          <span class="table-badge badge-user">RBAC</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name">username</span><span class="col-type">VARCHAR</span><span class="col-note">Unique</span></div>
+          <div class="table-row"><span class="col-name">full_name</span><span class="col-type">VARCHAR</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">hashed_password</span><span class="col-type">VARCHAR</span><span class="col-note">bcrypt — never plain text</span></div>
+          <div class="table-row"><span class="col-name">role</span><span class="col-type">VARCHAR</span><span class="col-note">super_admin/headteacher/bursar/data_entry</span></div>
+          <div class="table-row"><span class="col-name">is_active</span><span class="col-type">BOOLEAN</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">last_login</span><span class="col-type">DATETIME</span><span class="col-note"></span></div>
+        </div>
+      </div>
+
+      <div class="db-table mod-audit">
+        <div class="table-header">
+          <span class="table-name">audit_log</span>
+          <span class="table-badge badge-audit">Append-only</span>
+        </div>
+        <div class="table-rows">
+          <div class="table-row"><span class="col-name pk">id</span><span class="col-type">INTEGER</span><span class="col-note">PK</span></div>
+          <div class="table-row"><span class="col-name fk">user_id</span><span class="col-type">INTEGER</span><span class="col-note">FK users</span></div>
+          <div class="table-row"><span class="col-name">username_snapshot</span><span class="col-type">VARCHAR</span><span class="col-note">Captured at time of action</span></div>
+          <div class="table-row"><span class="col-name">action</span><span class="col-type">VARCHAR</span><span class="col-note">CREATE/UPDATE/VOID/LOGIN</span></div>
+          <div class="table-row"><span class="col-name">table_name</span><span class="col-type">VARCHAR</span><span class="col-note"></span></div>
+          <div class="table-row"><span class="col-name">old_value</span><span class="col-type">JSON</span><span class="col-note">State before</span></div>
+          <div class="table-row"><span class="col-name">new_value</span><span class="col-type">JSON</span><span class="col-note">State after</span></div>
+          <div class="table-row"><span class="col-name">timestamp</span><span class="col-type">DATETIME</span><span class="col-note">Indexed</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DATA FLOW -->
+  <div class="flow-section">
+    <div class="section-title">03 — Data Flow</div>
+    <div class="flow-container">
+
+      <div class="flow-node node-institution">
+        Institution Setup
+        <span class="node-sub">one-time · school name, logo, term structure</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-academic">
+        Academic Year + Term Opened
+        <span class="node-sub">receipt counter initialized at 0001</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-academic">
+        Classes Created
+        <span class="node-sub">P.1–P.7 · S.1–S.6 · tertiary</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-student">
+        Students Enrolled
+        <span class="node-sub">linked to class · ID assigned</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-fee">
+        Fee Structures Defined
+        <span class="node-sub">per class · per term · per category</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-payment" style="border-width:2px">
+        Payment Recorded by Bursar
+        <span class="node-sub">receipt number generated · channel selected · allocations created</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-cashbook">
+        Cashbook Entry Auto-Created
+        <span class="node-sub">never manual · always automatic</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-banking">
+        Bank Deposit Recorded
+        <span class="node-sub">cashbook entry auto-created</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-expense">
+        Expense Initiated → Approved → Paid
+        <span class="node-sub">voucher printed · cashbook entry auto-created</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-report">
+        Reports Generated
+        <span class="node-sub">daily · term · student statement · income vs expenditure</span>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-node node-audit">
+        Every Step → Audit Log
+        <span class="node-sub">who · what · when · old value · new value · append-only</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- API ROUTES -->
+  <div class="routes-section">
+    <div class="section-title">04 — API Routes &nbsp;<span style="font-size:10px;color:var(--muted);letter-spacing:1px">prefix: /api/v1/</span></div>
+    <div class="routes-grid">
+
+      <div class="route-group rg-institution">
+        <div class="route-group-header"><div class="folder-icon dot-institution"></div>Institution</div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/institution<span class="route-desc">Get institution details</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/institution/setup<span class="route-desc">First-run setup</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/institution<span class="route-desc">Update details</span></span></div>
+      </div>
+
+      <div class="route-group rg-academic">
+        <div class="route-group-header"><div class="folder-icon dot-academic"></div>Academic Structure</div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/academic-years<span class="route-desc">List all years</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/academic-years<span class="route-desc">Create year</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/terms<span class="route-desc">List terms</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/terms<span class="route-desc">Create term</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/terms/{id}/open<span class="route-desc">Open a term</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/terms/{id}/close<span class="route-desc">Close a term</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/terms/{id}/freeze<span class="route-desc">Freeze a term</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/classes<span class="route-desc">List classes</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/classes<span class="route-desc">Create class</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/classes/{id}<span class="route-desc">Update class</span></span></div>
+      </div>
+
+      <div class="route-group rg-student">
+        <div class="route-group-header"><div class="folder-icon dot-student"></div>Students</div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/students<span class="route-desc">List, filter by class/status</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/students<span class="route-desc">Create student</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/students/{id}<span class="route-desc">Get one student</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/students/{id}<span class="route-desc">Update student</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/students/{id}/status<span class="route-desc">Change enrollment status</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/students/import<span class="route-desc">Import from Excel</span></span></div>
+      </div>
+
+      <div class="route-group rg-fee">
+        <div class="route-group-header"><div class="folder-icon dot-fee"></div>Fee Management</div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/fee-categories<span class="route-desc">List categories</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/fee-categories<span class="route-desc">Create category</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/fee-structures<span class="route-desc">List by class/term</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/fee-structures<span class="route-desc">Create structure</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/students/{id}/adjustments<span class="route-desc">Get adjustments</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/students/{id}/adjustments<span class="route-desc">Add adjustment</span></span></div>
+      </div>
+
+      <div class="route-group rg-payment">
+        <div class="route-group-header"><div class="folder-icon dot-payment"></div>Payments</div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/payments<span class="route-desc">List, filter by student/term/date</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/payments<span class="route-desc">Record a payment</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/payments/{id}<span class="route-desc">Get one payment</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/payments/{id}/void<span class="route-desc">Void — reason required</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/payments/receipt/{number}<span class="route-desc">Lookup by receipt number</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/students/{id}/balance<span class="route-desc">Balance breakdown</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/students/{id}/payment-history<span class="route-desc">Full history</span></span></div>
+      </div>
+
+      <div class="route-group rg-expense">
+        <div class="route-group-header"><div class="folder-icon dot-expense"></div>Expenses</div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/expenses<span class="route-desc">List by status/term</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/expenses<span class="route-desc">Initiate expense</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/expenses/{id}/submit<span class="route-desc">Submit for approval</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/expenses/{id}/approve<span class="route-desc">Approve</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/expenses/{id}/reject<span class="route-desc">Reject — reason required</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/expenses/{id}/mark-paid<span class="route-desc">Mark as paid</span></span></div>
+      </div>
+
+      <div class="route-group rg-report">
+        <div class="route-group-header"><div class="folder-icon dot-fee"></div>Reports &nbsp;<span style="font-size:9px;color:var(--muted)">?format=pdf returns PDF</span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/reports/daily-collection<span class="route-desc">Daily collection</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/reports/fee-balances<span class="route-desc">All outstanding balances</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/reports/student-statement/{id}<span class="route-desc">One student full history</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/reports/cashbook<span class="route-desc">Cashbook date range</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/reports/income-expenditure<span class="route-desc">Income vs expenditure</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/reports/term-summary<span class="route-desc">Term financial summary</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/reports/outstanding-fees<span class="route-desc">Outstanding fees list</span></span></div>
+      </div>
+
+      <div class="route-group rg-user">
+        <div class="route-group-header"><div class="folder-icon dot-user"></div>Users + Auth</div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/auth/login<span class="route-desc">Login — returns token</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/auth/logout<span class="route-desc">Logout</span></span></div>
+        <div class="route-item"><span class="method get">GET</span><span class="route-path">/users<span class="route-desc">List users — super admin only</span></span></div>
+        <div class="route-item"><span class="method post">POST</span><span class="route-path">/users<span class="route-desc">Create user</span></span></div>
+        <div class="route-item"><span class="method put">PUT</span><span class="route-path">/users/{id}/deactivate<span class="route-desc">Deactivate user</span></span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RULES -->
+  <div class="rules-section">
+    <div class="section-title">05 — Rules You Must Never Break in Code</div>
+    <div class="rules-grid">
+      <div class="rule-card"><strong>Receipt numbers are sacred</strong>Never reused. Never editable. Generated atomically per term. Format: YYYY/T#/NNNN.</div>
+      <div class="rule-card"><strong>Cashbook is automatic</strong>Never manually created, updated, or deleted. Every entry is the automatic result of another action.</div>
+      <div class="rule-card"><strong>Audit log is append-only</strong>No service ever updates or deletes an audit entry. Ever. Under any circumstance.</div>
+      <div class="rule-card"><strong>Voided payments stay visible</strong>Voided payments remain in the database and appear as reversal entries in the cashbook.</div>
+      <div class="rule-card"><strong>Frozen terms are locked</strong>No payments or expenses can be recorded against a closed or frozen term.</div>
+      <div class="rule-card"><strong>Students are never hard-deleted</strong>Status changes to inactive. History is permanent. The record stays forever.</div>
+      <div class="rule-card"><strong>Passwords are always hashed</strong>bcrypt only. Never plain text. Never logged. Never returned in any API response.</div>
+      <div class="rule-card"><strong>Every action is audited</strong>If it changes data, it writes to the audit log. No exceptions. Not even minor updates.</div>
+    </div>
+  </div>
+
+  <footer>
+    A-Von CashBook &nbsp;·&nbsp; A-Von Computer Solutions &nbsp;·&nbsp; Proprietary &amp; Confidential
+  </footer>
+
+</div>
+</body>
+</html>
