@@ -49,3 +49,6 @@ logs/
 # Backup files
 *.bak
 *.zip
+
+# Project Context (ignored by Git)
+.project_context/
