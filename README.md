@@ -44,18 +44,58 @@
 
 ---
 
+## System Requirements
+
+The application is optimized for low-spec school computers to ensure smooth performance in all environments.
+
+### Minimum Hardware
+- **Processor:** Dual-core 2.0GHz or similar (Legacy Core 2 Duo era and above)
+- **Memory:** 2GB RAM (4GB recommended)
+- **Storage:** 500MB available space (HDD or SSD)
+- **Display:** 1280x720 minimum resolution
+
+### Platform Support
+| Platform | Minimum Version | Notes |
+|---|---|---|
+| **Windows** | Windows 10 | WebView2 Runtime required (standard in Win 10+) |
+| **Linux** | Modern Distro | WebKit2GTK required |
+| **macOS** | High Sierra (10.13) | Support for older WebKit versions included |
+
+---
+
 ## Tech Stack
+
+### Backend
 
 | Layer | Technology |
 |---|---|
 | Desktop Shell | Tauri |
-| Frontend | React + TailwindCSS |
 | Backend | Python 3.11+ / FastAPI |
 | Database | SQLite via SQLAlchemy |
 | Migrations | Alembic |
 | PDF Generation | ReportLab |
 | Excel Import | openpyxl |
 | IPC | Tauri sidecar (localhost FastAPI) |
+
+### Frontend
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Desktop Shell | Tauri | Native window, system tray, print dialog, file system access |
+| UI Framework | React 18 | Component tree, state management |
+| Build Tool | Vite | Fast dev server and production bundler |
+| Styling | TailwindCSS | Utility-first styling |
+| Routing | React Router v6 | Client-side navigation |
+| State | Zustand | Lightweight global state (auth, active term, institution) |
+| API Client | Axios | HTTP calls to FastAPI backend |
+| Forms | React Hook Form | Form state and validation |
+| Tables | TanStack Table | Sortable, filterable data tables |
+| Date Handling | date-fns | Date formatting and arithmetic |
+| PDF Trigger | Tauri shell API | Opens system print dialog on backend-generated PDFs |
+| Icons | Lucide React | Consistent icon set |
+| Notifications | React Hot Toast | Non-blocking feedback toasts |
+
+**Shell architecture:** React runs inside the Tauri window. The Python FastAPI backend runs as a sidecar process connecting over a local loopback. Tauri handles OS-level operations; React handles all UI; Python handles all data and business logic.
 
 ---
 
@@ -70,21 +110,46 @@ See [docs/specs](docs/specs) for full project specifications.
 ## Project Structure
 ```
 avon-cashbook/
-├── src-tauri/          # Tauri desktop shell (Rust)
-├── frontend/           # React + TailwindCSS UI
-├── backend/            # Python FastAPI backend + SQLite
+├── src-tauri/              # Tauri desktop shell (Rust)
+├── frontend/               # React + TailwindCSS UI
+│   └── src/
+│       ├── main.jsx        # React entry point
+│       ├── App.jsx         # Root component, router setup
+│       ├── assets/         # Logos, images, fonts (bundled — no CDN)
+│       ├── styles/         # Tailwind directives + CSS custom properties
+│       ├── store/          # Zustand stores (auth, institution, term)
+│       ├── hooks/          # useApi, useAuth, useTerm, usePrint
+│       ├── api/            # One file per backend module (Axios calls)
+│       ├── components/
+│       │   ├── layout/     # AppShell, Sidebar, Topbar, PageHeader
+│       │   ├── ui/         # Button, Input, Table, Modal, Badge, etc.
+│       │   └── shared/     # StudentPicker, RoleGuard, PrintButton, etc.
+│       └── pages/          # One folder per module (auth, dashboard, students…)
+├── backend/                # Python FastAPI backend + SQLite
 │   ├── app/
-│   │   ├── api/        # Route handlers
-│   │   ├── models/     # SQLAlchemy models
-│   │   ├── schemas/    # Pydantic schemas
-│   │   ├── services/   # Business logic
-│   │   ├── reports/    # PDF generation
-│   │   └── utils/      # Helpers
-│   ├── migrations/     # Alembic migrations
-│   └── tests/          # Backend tests
-├── docs/               # Specifications, design, screenshots
-└── scripts/            # Build and utility scripts
+│   │   ├── api/            # Route handlers
+│   │   ├── models/         # SQLAlchemy models
+│   │   ├── schemas/        # Pydantic schemas
+│   │   ├── services/       # Business logic
+│   │   ├── reports/        # PDF generation
+│   │   └── utils/          # Helpers
+│   ├── migrations/         # Alembic migrations
+│   └── tests/              # Backend tests
+├── docs/                   # Specifications, design, screenshots
+└── scripts/                # Build and utility scripts
 ```
+
+---
+
+## Design System
+
+**Fonts (bundled, no CDN):** `Geist` (body text) · `Syne` (headings & display) · `JetBrains Mono` (receipt numbers, amounts, IDs)
+
+**Theme:** Light and dark mode from day one via CSS custom properties (`[data-theme]`). OS preference respected on first launch; persisted via Tauri.
+
+**Light palette:** `--color-primary: #1B4F72` · `--color-accent: #1A7A4A` · `--color-surface: #FFFFFF` · `--color-background: #F4F6F9`
+
+**Dark palette:** `--color-primary: #2E86C1` · `--color-accent: #27AE60` · `--color-surface: #1A2235` · `--color-background: #0F1623`
 
 ---
 
